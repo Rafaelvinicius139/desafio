@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desafio – Comissões, Estoque e Juros</title>
+<style>
+:root{--azul:#14304f;--azul2:#1f4b7a;--azul3:#e8eef5;--fundo:#f3f5f8;--linha:#d9dfe7;--texto:#1b2430;--suave:#5b6776;--ok:#1e7a4f;--erro:#b3261e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--fundo);color:var(--texto);line-height:1.5}
+header{background:var(--azul);color:#fff;padding:28px 20px 0}
+header .in,main{width:min(960px,100%);margin-inline:auto}
+header h1{font-size:1.5rem;font-weight:600}
+header p{color:#b9c8da;font-size:.95rem;margin-top:2px}
+nav{display:flex;gap:4px;margin-top:22px;flex-wrap:wrap}
+nav button{background:transparent;color:#b9c8da;border:0;padding:12px 20px;font:inherit;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0}
+nav button[aria-selected=true]{background:var(--fundo);color:var(--azul)}
+nav button:hover:not([aria-selected=true]){color:#fff}
+:focus-visible{outline:3px solid #6fa8dc;outline-offset:2px}
+main{padding:28px 20px 56px}
+section[hidden]{display:none}
+.card{background:#fff;border:1px solid var(--linha);border-radius:10px;padding:24px;margin-bottom:20px}
+h2{font-size:1.2rem;color:var(--azul);margin-bottom:6px}
+.sub{color:var(--suave);font-size:.93rem;margin-bottom:18px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end}
+label{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600;color:var(--azul)}
+input,select{font:inherit;padding:10px 12px;border:1px solid #b9c3d0;border-radius:6px;background:#fff;color:var(--texto)}
+button.acao{font:inherit;font-weight:600;background:var(--azul2);color:#fff;border:0;border-radius:6px;padding:11px 20px;cursor:pointer}
+button.acao:hover{background:var(--azul)}
+.tabela{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--linha);white-space:nowrap}
+th{background:var(--azul3);color:var(--azul);font-weight:600}
+td.n,th.n{text-align:right}
+tfoot td{font-weight:700;background:var(--azul3);border-bottom:0}
+.msg{margin-top:16px;padding:14px 16px;border-radius:8px;font-weight:600}
+.msg.ok{background:#e6f4ec;color:var(--ok)}
+.msg.erro{background:#fbeaea;color:var(--erro)}
+.msg:empty{display:none}
+.regra{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.regra span{background:var(--azul3);color:var(--azul);border-radius:999px;padding:4px 12px;font-size:.85rem}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:20px}
+.resumo div{border:1px solid var(--linha);border-radius:8px;padding:14px}
+.resumo small{color:var(--suave);display:block;font-size:.8rem}
+.resumo strong{font-size:1.25rem;color:var(--azul)}
+@media(max-width:600px){header{padding-top:22px}nav button{padding:10px 14px;font-size:.9rem}.card{padding:18px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="in">
+    <h1>Desafio técnico</h1>
+    <p>Comissões, movimentação de estoque e cálculo de juros</p>
+    <nav role="tablist">
+      <button role="tab" aria-selected="true" data-aba="comissoes">1. Comissões</button>
+      <button role="tab" aria-selected="false" data-aba="estoque">2. Estoque</button>
+      <button role="tab" aria-selected="false" data-aba="juros">3. Juros</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1. COMISSÕES -->
+  <section id="comissoes">
+    <div class="card">
+      <h2>Comissão por vendedor</h2>
+      <p class="sub">A regra é aplicada em cada venda e depois somada por vendedor.</p>
+      <div class="regra">
+        <span>Abaixo de R$ 100,00: sem comissão</span>
+        <span>De R$ 100,00 até R$ 499,99: 1%</span>
+        <span>A partir de R$ 500,00: 5%</span>
+      </div>
+      <div class="tabela">
+        <table>
+          <thead><tr><th>Vendedor</th><th class="n">Vendas</th><th class="n">Total vendido</th><th class="n">Comissão</th></tr></thead>
+          <tbody id="corpo-comissoes"></tbody>
+          <tfoot id="rodape-comissoes"></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. ESTOQUE -->
+  <section id="estoque" hidden>
+    <div class="card">
+      <h2>Lançar movimentação</h2>
+      <p class="sub">Cada movimentação recebe um identificador único e uma descrição.</p>
+      <form id="form-mov">
+        <label>Produto <select id="mov-produto" required></select></label>
+        <label>Tipo <select id="mov-tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></label>
+        <label>Quantidade <input id="mov-qtd" type="number" min="1" step="1" required></label>
+        <label>Descrição <input id="mov-desc" type="text" list="sugestoes" placeholder="Ex.: Compra de fornecedor" required>
+          <datalist id="sugestoes"><option value="Compra de fornecedor"><option value="Venda ao cliente"><option value="Devolução de cliente"><option value="Ajuste de inventário"><option value="Perda ou avaria"></datalist>
+        </label>
+        <button class="acao" type="submit">Lançar</button>
+      </form>
+      <div id="msg-mov" class="msg" role="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Estoque atual</h2>
+      <div class="tabela"><table>
+        <thead><tr><th>Código</th><th>Produto</th><th class="n">Quantidade</th></tr></thead>
+        <tbody id="corpo-estoque"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Histórico de movimentações</h2>
+      <div class="tabela"><table>
+        <thead><tr><th>ID</th><th>Produto</th><th>Tipo</th><th class="n">Qtd.</th><th>Descrição</th><th class="n">Estoque final</th></tr></thead>
+        <tbody id="corpo-historico"><tr><td colspan="6">Nenhuma movimentação lançada.</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 3. JUROS -->
+  <section id="juros" hidden>
+    <div class="card">
+      <h2>Cálculo de juros por atraso</h2>
+      <p class="sub">Multa de 2,5% ao dia sobre o valor original, contada até hoje.</p>
+      <form id="form-juros">
+        <label>Valor (R$) <input id="j-valor" type="number" min="0.01" step="0.01" required></label>
+        <label>Data de vencimento <input id="j-data" type="date" required></label>
+        <button class="acao" type="submit">Calcular</button>
+      </form>
+      <div id="msg-juros" class="msg" role="status"></div>
+      <div id="res-juros" class="resumo" hidden></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Abas ---------- */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== b.dataset.aba);
+}));
+
+/* ---------- 1. Comissões ---------- */
+// Mesma estrutura do JSON do enunciado: { vendas: [{ vendedor, valor }] }
+const porVendedor = {
+  'João Silva': [1200.50, 950.75, 1800.00, 1400.30, 1100.90, 1550.00, 1700.80, 250.30, 480.75, 320.40],
+  'Maria Souza': [2100.40, 1350.60, 950.20, 1600.75, 1750.00, 1450.90, 400.50, 180.20, 90.75],
+  'Carlos Oliveira': [800.50, 1200.00, 1950.30, 1750.80, 1300.60, 300.40, 500.00, 125.75],
+  'Ana Lima': [1000.00, 1100.50, 1250.75, 1400.20, 1550.90, 1650.00, 75.30, 420.90, 315.40]
+};
+const DADOS = { vendas: Object.entries(porVendedor).flatMap(([vendedor, vs]) => vs.map(valor => ({ vendedor, valor }))) };
+
+function comissao(valor) {
+  if (valor < 100) return 0;
+  const taxa = valor < 500 ? 1 : 5;               // em %
+  return Math.round(Math.round(valor * 100) * taxa / 100) / 100; // arredonda em centavos
+}
+
+function calcularComissoes(dados) {
+  const r = {};
+  for (const { vendedor, valor } of dados.vendas) {
+    r[vendedor] ??= { qtd: 0, total: 0, comissao: 0 };
+    r[vendedor].qtd++;
+    r[vendedor].total += valor;
+    r[vendedor].comissao += comissao(valor);
+  }
+  return r;
+}
+
+(function () {
+  const r = calcularComissoes(DADOS);
+  let q = 0, t = 0, c = 0;
+  document.getElementById('corpo-comissoes').innerHTML = Object.entries(r).map(([nome, x]) => {
+    q += x.qtd; t += x.total; c += x.comissao;
+    return `<tr><td>${esc(nome)}</td><td class="n">${x.qtd}</td><td class="n">${brl(x.total)}</td><td class="n">${brl(x.comissao)}</td></tr>`;
+  }).join('');
+  document.getElementById('rodape-comissoes').innerHTML =
+    `<tr><td>Total</td><td class="n">${q}</td><td class="n">${brl(t)}</td><td class="n">${brl(c)}</td></tr>`;
+})();
+
+/* ---------- 2. Estoque ---------- */
+const ESTOQUE = { estoque: [
+  { codigoProduto: 101, descricaoProduto: 'Caneta Azul', estoque: 150 },
+  { codigoProduto: 102, descricaoProduto: 'Caderno Universitário', estoque: 75 },
+  { codigoProduto: 103, descricaoProduto: 'Borracha Branca', estoque: 200 },
+  { codigoProduto: 104, descricaoProduto: 'Lápis Preto HB', estoque: 320 },
+  { codigoProduto: 105, descricaoProduto: 'Marcador de Texto Amarelo', estoque: 90 }
+]};
+const historico = [];
+let proximoId = 1;
+
+const selProd = document.getElementById('mov-produto');
+selProd.innerHTML = ESTOQUE.estoque.map(p => `<option value="${p.codigoProduto}">${p.codigoProduto} – ${esc(p.descricaoProduto)}</option>`).join('');
+
+function desenharEstoque() {
+  document.getElementById('corpo-estoque').innerHTML = ESTOQUE.estoque.map(p =>
+    `<tr><td>${p.codigoProduto}</td><td>${esc(p.descricaoProduto)}</td><td class="n">${p.estoque}</td></tr>`).join('');
+  if (historico.length) document.getElementById('corpo-historico').innerHTML = historico.map(m =>
+    `<tr><td>${m.id}</td><td>${esc(m.produto)}</td><td>${m.tipo === 'entrada' ? 'Entrada' : 'Saída'}</td><td class="n">${m.qtd}</td><td>${esc(m.descricao)}</td><td class="n">${m.saldo}</td></tr>`).reverse().join('');
+}
+
+function movimentar(codigo, tipo, qtd, descricao) {
+  const p = ESTOQUE.estoque.find(x => x.codigoProduto === codigo);
+  if (tipo === 'saida' && qtd > p.estoque) throw new Error(`Estoque insuficiente: ${p.descricaoProduto} tem apenas ${p.estoque} un.`);
+  p.estoque += tipo === 'entrada' ? qtd : -qtd;
+  const mov = { id: 'MOV-' + String(proximoId++).padStart(4, '0'), produto: p.descricaoProduto, tipo, qtd, descricao, saldo: p.estoque };
+  historico.push(mov);
+  return mov;
+}
+
+document.getElementById('form-mov').addEventListener('submit', e => {
+  e.preventDefault();
+  const msg = document.getElementById('msg-mov');
+  try {
+    const qtd = parseInt(document.getElementById('mov-qtd').value, 10);
+    const desc = document.getElementById('mov-desc').value.trim();
+    if (!(qtd > 0) || !desc) throw new Error('Informe uma quantidade válida e uma descrição.');
+    const m = movimentar(+selProd.value, document.getElementById('mov-tipo').value, qtd, desc);
+    msg.className = 'msg ok';
+    msg.textContent = `${m.id} registrada. Estoque final de "${m.produto}": ${m.saldo} un.`;
+    e.target.reset();
+    desenharEstoque();
+  } catch (err) {
+    msg.className = 'msg erro';
+    msg.textContent = err.message;
+  }
+});
+desenharEstoque();
+
+/* ---------- 3. Juros ---------- */
+function diasDeAtraso(vencimento) {            // vencimento no formato AAAA-MM-DD
+  const [a, m, d] = vencimento.split('-').map(Number);
+  const venc = new Date(a, m - 1, d);
+  const h = new Date();
+  const hoje = new Date(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((hoje - venc) / 864e5);
+}
+
+document.getElementById('form-juros').addEventListener('submit', e => {
+  e.preventDefault();
+  const valor = parseFloat(document.getElementById('j-valor').value);
+  const dias = diasDeAtraso(document.getElementById('j-data').value);
+  const msg = document.getElementById('msg-juros'), res = document.getElementById('res-juros');
+  if (dias <= 0) {
+    res.hidden = true;
+    msg.className = 'msg ok';
+    msg.textContent = dias === 0 ? 'Vence hoje: ainda não há juros.' : `Faltam ${-dias} dia(s) para o vencimento: sem juros.`;
+    return;
+  }
+  const juros = Math.round(valor * 2.5 * dias) / 100;   // valor × 2,5% × dias
+  msg.className = 'msg'; msg.textContent = '';
+  res.hidden = false;
+  res.innerHTML = `<div><small>Dias em atraso</small><strong>${dias}</strong></div>
+    <div><small>Juros (2,5% ao dia)</small><strong>${brl(juros)}</strong></div>
+    <div><small>Valor original</small><strong>${brl(valor)}</strong></div>
+    <div><small>Total a pagar hoje</small><strong>${brl(valor + juros)}</strong></div>`;
+});
+</script>
+</body>
+</html>
